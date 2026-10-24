@@ -10,6 +10,7 @@ import SetlistBuilder, { calcTotalDuration } from "./components/SetlistBuilder";
 import PrintModal from "./components/PrintModal";
 import GenerateModal from "./components/GenerateModal";
 import ShowSetlist from "./components/ShowSetlist";
+import SingleChartView from "./components/SingleChartView";
 import VotePanel from "./components/VotePanel";
 import SongAdmin from "./components/SongAdmin";
 import { Toast, ConfirmDialog } from "./components/Toast";
@@ -29,17 +30,24 @@ const DEFAULT_SHOW = () => ({
 export default function App() {
   const { songs } = useSongs();
   const songMap = Object.fromEntries(songs.map(s => [s.id, s]));
+  const [chartRoute, setChartRoute] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const songId = params.get("chart");
+    const showId = params.get("chartShow");
+    return songId && showId ? { songId, showId } : null;
+  });
   const [shows, setShows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeShowId, setActiveShowId] = useLocalStorage("sickday-active-show", null);
   const [viewMode, setViewMode] = useState("builder");
   const [memberName, setMemberName] = useLocalStorage("sickday-member", "");
+  const [liveModeByShow, setLiveModeByShow] = useLocalStorage("sickday-live-mode", {});
   const [printShow, setPrintShow] = useState(null);
   const [showGenerate, setShowGenerate] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [mobileTab, setMobileTab] = useState("library");
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [toast, setToast] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -75,15 +83,63 @@ export default function App() {
   }
 
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 640);
+    const handler = () => setViewportWidth(window.innerWidth);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const songId = params.get("chart");
+      const showId = params.get("chartShow");
+      setChartRoute(songId && showId ? { songId, showId } : null);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const isMobile = viewportWidth < 900;
+  const isTablet = viewportWidth < 1200;
   const activeShow = shows.find(s => s.id === activeShowId) || shows[0];
+  const chartShow = chartRoute ? shows.find(show => show.id === chartRoute.showId) : null;
 
   function updateShow(id, updates) {
     updateDoc(doc(db, "shows", id), updates);
+  }
+
+  function openSongChart(songId) {
+    if (!activeShow || !activeShow.songIds.some(id => String(id) === String(songId))) return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete("vote");
+    params.set("chart", String(songId));
+    params.set("chartShow", activeShow.id);
+    window.history.pushState({ ...window.history.state, singleChart: true }, "", `${window.location.pathname}?${params}`);
+    setChartRoute({ songId: String(songId), showId: activeShow.id });
+  }
+
+  function showChartSong(songId, replaceHistory = true) {
+    if (!chartRoute) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set("chart", String(songId));
+    params.set("chartShow", chartRoute.showId);
+    const url = `${window.location.pathname}?${params}`;
+    if (replaceHistory) window.history.replaceState({ ...window.history.state, singleChart: true }, "", url);
+    else window.history.pushState({ ...window.history.state, singleChart: true }, "", url);
+    setChartRoute({ ...chartRoute, songId: String(songId) });
+  }
+
+  function backToSetlistFromChart() {
+    if (window.history.state?.singleChart) {
+      window.history.back();
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    params.delete("chart");
+    params.delete("chartShow");
+    const query = params.toString();
+    window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    setChartRoute(null);
   }
 
   function addShow() {
@@ -139,9 +195,19 @@ export default function App() {
   // ── Voting ─────────────────────────────────────────────────────────────
   const voting = activeShow?.voting || {};
   const playedSongIds = activeShow?.playedSongIds || [];
-  const isShowMode = playedSongIds.length > 0 || voting.active;
+  const localLiveMode = activeShow ? liveModeByShow?.[activeShow.id] : undefined;
+  const hasLocalLiveMode = typeof localLiveMode === "boolean";
+  const isShowMode = activeShow
+    ? (hasLocalLiveMode ? localLiveMode : playedSongIds.length > 0 || voting.active)
+    : false;
+
+  function setLiveShowMode(enabled) {
+    if (!activeShow) return;
+    setLiveModeByShow(previous => ({ ...previous, [activeShow.id]: enabled }));
+  }
 
   function openVoting(timerSecs) {
+    setLiveShowMode(true);
     updateShow(activeShow.id, {
       voting: {
         ...(activeShow.voting || {}),
@@ -223,12 +289,29 @@ export default function App() {
     return `${m}m ${String(s).padStart(2,"0")}s`;
   }
   const totalDuration = calcTotalDuration(activeShow?.songIds || [], songMap);
+  const liveModeButton = (
+    <button
+      type="button"
+      onClick={() => setLiveShowMode(!isShowMode)}
+      disabled={!isShowMode && !activeShow?.songIds?.length}
+      aria-pressed={isShowMode}
+      style={{
+        minHeight:36, padding:"7px 12px", borderRadius:5,
+        border:`1px solid ${isShowMode ? colors.borderRed : colors.borderTeal}`,
+        background:isShowMode ? "transparent" : colors.teal,
+        color:isShowMode ? colors.coral : colors.onAccent,
+        cursor:!isShowMode && !activeShow?.songIds?.length ? "default" : "pointer",
+        opacity:!isShowMode && !activeShow?.songIds?.length ? 0.5 : 1,
+        fontSize:12, fontWeight:"bold", fontFamily:"inherit", whiteSpace:"nowrap",
+      }}
+    >{isShowMode ? "■ End Live Show" : "▶ Start Live Show"}</button>
+  );
 
   if (loading) return (
     <div style={{
       height:"100dvh", background: colors.bgPage, display:"flex",
       alignItems:"center", justifyContent:"center",
-      color:colors.teal, fontFamily:"'Georgia', serif", fontSize:14, letterSpacing:"0.1em",
+      color:colors.teal, fontFamily:"'Inter', system-ui, sans-serif", fontSize:14, letterSpacing:"0.1em",
     }}>
       Loading…
     </div>
@@ -236,10 +319,36 @@ export default function App() {
 
   if (!activeShow) return null;
 
+  if (chartRoute && chartShow) {
+    const chartSongIds = chartShow.songIds || [];
+    const chartIndex = chartSongIds.findIndex(id => String(id) === String(chartRoute.songId));
+    const chartSong = chartIndex >= 0
+      ? (songMap[chartSongIds[chartIndex]] || songs.find(song => String(song.id) === String(chartRoute.songId)))
+      : null;
+    if (chartSong) {
+      const nextSongId = chartIndex >= 0 ? chartSongIds[chartIndex + 1] : null;
+      const nextSong = nextSongId == null
+        ? null
+        : (songMap[nextSongId] || songs.find(song => String(song.id) === String(nextSongId)));
+
+      return (
+        <SingleChartView
+          song={chartSong}
+          note={chartSong.note}
+          songNumber={chartIndex + 1}
+          songCount={chartSongIds.length}
+          hasNext={Boolean(nextSong)}
+          onNext={() => nextSong && showChartSong(nextSongId)}
+          onBack={backToSetlistFromChart}
+        />
+      );
+    }
+  }
+
   // ── Shared sub-components ──────────────────────────────────────────────
 
   const metaBar = (
-    <div style={{
+    <div className="meta-bar" style={{
       display:"flex", alignItems:"center", gap:8, padding:"8px 16px",
       borderBottom:`1px solid ${colors.borderLight}`, background:colors.bgPanel, flexShrink:0,
       flexWrap:"wrap",
@@ -292,7 +401,7 @@ export default function App() {
       />
 
       {!isMobile && (
-        <div style={{ marginLeft:"auto", display:"flex", gap:6, alignItems:"center" }}>
+        <div className="meta-actions" style={{ marginLeft:"auto", display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
           <span style={{ fontSize:11, color:colors.textMuted }}>{activeShow.songIds.length} songs</span>
 
           <button onClick={() => setShowGenerate(true)} style={{
@@ -369,10 +478,10 @@ export default function App() {
     const suggestionCount = activeShow.suggestions?.length || 0;
 
     return (
-      <div style={{
+      <div className={isTablet ? "tablet-layout" : undefined} style={{
         display:"flex", flexDirection:"column", height:"100dvh",
         background: colors.bgPage, color:colors.textPrimary,
-        fontFamily:"'Georgia', serif", overflow:"hidden",
+        fontFamily:"'Inter', system-ui, sans-serif", overflow:"hidden",
       }}>
         {/* Top bar */}
         <div style={{
@@ -381,7 +490,7 @@ export default function App() {
           borderBottom:`1px solid ${colors.borderMed}`, flexShrink:0,
           background:colors.bgHeader,
         }}>
-          <div style={{ fontSize:12, color:colors.coral, fontWeight:"bold", letterSpacing:"0.1em" }}>
+          <div style={{ fontSize:12, color:colors.coral, fontWeight:"bold", letterSpacing:"0.1em", fontFamily:"'Poppins', sans-serif" }}>
             SDWF
           </div>
 
@@ -462,10 +571,13 @@ export default function App() {
                 padding:"10px 16px 6px", fontSize:9, color:colors.textDim,
                 letterSpacing:"0.2em", textTransform:"uppercase", flexShrink:0,
                 borderBottom:`1px solid ${colors.borderLight}`,
-                display:"flex", justifyContent:"space-between", alignItems:"center",
+                display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap",
               }}>
                 <span>Set List — {activeShow.songIds.length} songs{totalDuration > 0 ? ` · ${fmtDuration(totalDuration)}` : ""}</span>
-                {!isShowMode && <span style={{ color:colors.textFaint, fontSize:9 }}>drag to reorder</span>}
+                <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                  {!isShowMode && <span style={{ color:colors.textFaint, fontSize:9 }}>drag to reorder</span>}
+                  {liveModeButton}
+                </div>
               </div>
               <VotePanel show={activeShow} onOpen={openVoting} onClose={closeVoting} onPause={pauseVoting} onResume={resumeVoting} />
               <div style={{ flex:1, overflowY:"auto" }}>
@@ -477,8 +589,9 @@ export default function App() {
                       songMap={songMap}
                       onMarkPlayed={markPlayed}
                       onUndoPlayed={undoPlayed}
+                      onOpenChart={openSongChart}
                     />
-                  : <SetlistBuilder songIds={activeShow.songIds} onChange={setSongIds} />
+                  : <SetlistBuilder songIds={activeShow.songIds} onChange={setSongIds} onOpenChart={openSongChart} />
                 }
               </div>
               {/* Action footer — only in builder mode */}
@@ -558,10 +671,10 @@ export default function App() {
   // ── Desktop layout ─────────────────────────────────────────────────────
 
   return (
-    <div style={{
+    <div className={isTablet ? "tablet-layout" : undefined} style={{
       display:"flex", flexDirection:"column", height:"100vh",
       background: colors.bgPage, color:colors.textPrimary,
-      fontFamily:"'Georgia', serif", overflow:"hidden",
+      fontFamily:"'Inter', system-ui, sans-serif", overflow:"hidden",
     }}>
       {/* Top bar */}
       <div style={{
@@ -570,7 +683,7 @@ export default function App() {
         borderBottom:`1px solid ${colors.borderMed}`, flexShrink:0,
         background:colors.bgHeader,
       }}>
-        <div style={{ fontSize:12, color:colors.coral, fontWeight:"bold", letterSpacing:"0.1em", marginRight:4 }}>
+        <div style={{ fontSize:12, color:colors.coral, fontWeight:"bold", letterSpacing:"0.1em", marginRight:4, fontFamily:"'Poppins', sans-serif" }}>
           SDWF
         </div>
 
@@ -619,8 +732,8 @@ export default function App() {
       <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
         {/* Library sidebar */}
         <div style={{
-          width: sidebarOpen ? 280 : 0,
-          minWidth: sidebarOpen ? 280 : 0,
+          width: sidebarOpen ? (isTablet ? 220 : 280) : 0,
+          minWidth: sidebarOpen ? (isTablet ? 220 : 280) : 0,
           borderRight:`1px solid ${colors.borderLight}`,
           display:"flex", flexDirection:"column",
           overflow:"hidden", transition:"width 0.2s, min-width 0.2s",
@@ -647,15 +760,17 @@ export default function App() {
           {sidebarOpen ? "‹" : "›"}
         </button>
 
-        <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
+        <div style={{ flex:1, minWidth:0, overflowY:"auto", display:"flex", flexDirection:"column" }}>
           {viewMode === "builder" ? (
             <>
               <div style={{
                 padding:"10px 16px 6px", fontSize:10, color:colors.textDim,
                 letterSpacing:"0.2em", textTransform:"uppercase",
                 borderBottom:`1px solid ${colors.borderLight}`, flexShrink:0,
+                display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, flexWrap:"wrap",
               }}>
-                Set List — {activeShow.songIds.length} songs{totalDuration > 0 ? ` · ${fmtDuration(totalDuration)}` : ""}{!isShowMode && " · drag to reorder"}
+                <span>Set List — {activeShow.songIds.length} songs{totalDuration > 0 ? ` · ${fmtDuration(totalDuration)}` : ""}{!isShowMode && " · drag to reorder"}</span>
+                {liveModeButton}
               </div>
               <VotePanel show={activeShow} onOpen={openVoting} onClose={closeVoting} onPause={pauseVoting} onResume={resumeVoting} />
               <div style={{ flex:1, overflowY:"auto" }}>
@@ -667,8 +782,9 @@ export default function App() {
                       songMap={songMap}
                       onMarkPlayed={markPlayed}
                       onUndoPlayed={undoPlayed}
+                      onOpenChart={openSongChart}
                     />
-                  : <SetlistBuilder songIds={activeShow.songIds} onChange={setSongIds} />
+                  : <SetlistBuilder songIds={activeShow.songIds} onChange={setSongIds} onOpenChart={openSongChart} />
                 }
               </div>
             </>

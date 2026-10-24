@@ -54,7 +54,7 @@ export default function BulkImportCharts({ songs, onClose, onImported }) {
     <div style={{
       position: "fixed", inset: 0, zIndex: 10001, background: "rgba(0,0,0,0.85)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "'Georgia', serif", padding: 24,
+      fontFamily: "'Inter', system-ui, sans-serif", padding: 24,
     }}>
       <div style={{
         width: "min(1000px, 100%)", maxHeight: "92vh", background: colors.bgPage,
@@ -75,7 +75,7 @@ export default function BulkImportCharts({ songs, onClose, onImported }) {
           <span onClick={onClose} style={{ fontSize: 22, lineHeight: 1, color: colors.textMuted, cursor: "pointer" }}>×</span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <div className="bulk-import-panes" style={{ display: "grid", flex: 1, minHeight: 0, overflow: "hidden" }}>
           {/* Left: paste */}
           <div style={{ borderRight: `1px solid ${colors.borderLight}`, display: "flex", flexDirection: "column", minHeight: 0 }}>
             <div style={{ padding: "10px 16px 6px" }}>

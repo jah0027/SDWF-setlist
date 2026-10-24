@@ -6,7 +6,26 @@ function fmtDuration(secs) {
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
 }
 
-export default function ShowSetlist({ songIds, playedSongIds, voting, songMap, onMarkPlayed, onUndoPlayed }) {
+function SongChartButton({ song, onOpenChart }) {
+  if (!song.chart?.trim()) return null;
+
+  return (
+    <button
+      type="button"
+      aria-label={`Open chart for ${song.title}`}
+      title="Open song chart"
+      onClick={event => { event.stopPropagation(); onOpenChart?.(song.id); }}
+      style={{
+        minHeight:32, padding:"5px 9px",
+        background:"transparent", border:`1px solid ${colors.borderTeal}`,
+        color:colors.teal, borderRadius:4, cursor:"pointer", fontSize:11,
+        fontWeight:"bold", lineHeight:1, whiteSpace:"nowrap", flexShrink:0,
+      }}
+    >Chart ↗</button>
+  );
+}
+
+export default function ShowSetlist({ songIds, playedSongIds, voting, songMap, onMarkPlayed, onUndoPlayed, onOpenChart }) {
   const playedSet = new Set(playedSongIds || []);
   const votes = voting?.songVotes || {};
   const votingActive = voting?.active;
@@ -44,9 +63,15 @@ export default function ShowSetlist({ songIds, playedSongIds, voting, songMap, o
               </div>
               <div style={{ fontSize: 11, color: colors.textFaint }}>{song.artist}</div>
             </div>
+            {song.key && (
+              <div style={{ fontSize:11, fontWeight:"bold", color:colors.onAccent, background:colors.teal, borderRadius:3, padding:"2px 6px", flexShrink:0 }}>
+                {song.key}
+              </div>
+            )}
+            <SongChartButton song={song} onOpenChart={onOpenChart} />
             <button onClick={() => onUndoPlayed(id)} style={{
               background: "none", border: `1px solid ${colors.borderLight}`, color: colors.textFaint,
-              borderRadius: 3, padding: "2px 8px", cursor: "pointer",
+              borderRadius: 3, padding: "5px 9px", cursor: "pointer",
               fontSize: 10, fontFamily: "inherit",
             }}>undo</button>
           </div>
@@ -70,7 +95,7 @@ export default function ShowSetlist({ songIds, playedSongIds, voting, songMap, o
               </div>
             )}
             <div style={{
-              display: "flex", alignItems: "center", gap: 10,
+              display: "flex", alignItems: "center", gap: 10, flexWrap:"wrap",
               padding: "10px 10px", borderRadius: 4, marginBottom: 3,
               background: isNext ? colors.bgNowPlaying : colors.bgCard,
               border: isNext ? `1px solid ${colors.coral}` : `1px solid ${colors.borderMed}`,
@@ -113,6 +138,8 @@ export default function ShowSetlist({ songIds, playedSongIds, voting, songMap, o
                   {song.key}
                 </div>
               )}
+
+              <SongChartButton song={song} onOpenChart={onOpenChart} />
 
               {/* Duration */}
               {song.duration && (

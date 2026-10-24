@@ -16,7 +16,7 @@ function QRModal({ url, onClose }) {
       position: "fixed", inset: 0, zIndex: 99999,
       background: "rgba(0,0,0,0.85)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "'Georgia', serif",
+      fontFamily: "'Inter', system-ui, sans-serif",
     }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{
         background: colors.bgPage, border: `1px solid ${colors.borderMed}`,

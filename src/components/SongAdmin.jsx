@@ -28,7 +28,7 @@ function Field({ label, value, onChange, type = "text", options }) {
   const inputStyle = {
     width:"100%", background:colors.bgInput, border:`1px solid ${colors.borderMed}`,
     color:colors.textPrimary, padding:"6px 8px", borderRadius:3,
-    fontSize:12, fontFamily:"'Georgia', serif", outline:"none",
+    fontSize:12, fontFamily:"'Inter', system-ui, sans-serif", outline:"none",
     boxSizing:"border-box",
   };
   return (
@@ -90,7 +90,7 @@ function SongForm({ initial, onSave, onCancel, saving }) {
           style={{
             width:"100%", background:colors.bgInput, border:`1px solid ${colors.borderMed}`,
             color:colors.textPrimary, padding:"6px 8px", borderRadius:3,
-            fontSize:13, fontFamily:"'Georgia', serif", outline:"none",
+            fontSize:13, fontFamily:"'Inter', system-ui, sans-serif", outline:"none",
             boxSizing:"border-box", resize:"vertical", lineHeight:1.5,
           }}
         />
@@ -161,7 +161,7 @@ export default function SongAdmin({ onClose, onToast }) {
     <div style={{
       position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.85)",
       display:"flex", alignItems:"stretch", justifyContent:"center",
-      fontFamily:"'Georgia', serif",
+      fontFamily:"'Inter', system-ui, sans-serif",
     }}>
       <div style={{
         background: colors.bgPage, width:"min(720px, 100vw)", display:"flex",
