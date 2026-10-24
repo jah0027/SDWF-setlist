@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { colors } from "../theme";
 
 function parseChordLine(line) {
@@ -63,14 +64,36 @@ function ChartText({ chart, note }) {
 }
 
 export default function SingleChartView({ song, songNumber, songCount, note, onBack, onNext, hasNext }) {
+  useEffect(() => {
+    const root = document.getElementById("root");
+    const nodes = [document.documentElement, document.body, root].filter(Boolean);
+    const properties = ["height", "minHeight", "overflow", "overflowX", "overflowY"];
+    const previous = nodes.map(node => properties.map(property => node.style[property]));
+
+    nodes.forEach(node => {
+      node.style.height = "auto";
+      node.style.minHeight = "100dvh";
+      node.style.overflow = "visible";
+      node.style.overflowX = "hidden";
+      node.style.overflowY = "visible";
+    });
+
+    return () => {
+      nodes.forEach((node, nodeIndex) => {
+        properties.forEach((property, propertyIndex) => {
+          node.style[property] = previous[nodeIndex][propertyIndex];
+        });
+      });
+    };
+  }, []);
+
   return (
     <main style={{
-      height:"100dvh", minHeight:0, overflowY:"auto", WebkitOverflowScrolling:"touch",
-      overscrollBehaviorY:"contain", touchAction:"pan-y",
+      minHeight:"100dvh", WebkitOverflowScrolling:"touch", touchAction:"pan-y",
       background:colors.bgPage, color:colors.textPrimary,
       fontFamily:"'Inter', system-ui, sans-serif", padding:"clamp(12px, 3vw, 28px)",
     }}>
-      <div style={{ maxWidth:900, margin:"0 auto" }}>
+      <div style={{ maxWidth:900, margin:"0 auto", paddingBottom:"calc(28px + env(safe-area-inset-bottom, 0px))" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap", marginBottom:18 }}>
           <button type="button" onClick={onBack} style={{
             minHeight:42, padding:"9px 14px", border:`1px solid ${colors.borderMed}`,
