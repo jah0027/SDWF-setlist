@@ -42,6 +42,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState("builder");
   const [memberName, setMemberName] = useLocalStorage("sickday-member", "");
   const [liveModeByShow, setLiveModeByShow] = useLocalStorage("sickday-live-mode", {});
+  const [compactSetlist, setCompactSetlist] = useLocalStorage("sickday-compact-setlist-v2", window.innerWidth < 900);
   const [printShow, setPrintShow] = useState(null);
   const [showGenerate, setShowGenerate] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -87,6 +88,10 @@ export default function App() {
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
+
+  useEffect(() => {
+    if (compactSetlist && viewportWidth < 900) setMobileTab("setlist");
+  }, [compactSetlist, viewportWidth]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -206,6 +211,11 @@ export default function App() {
     setLiveModeByShow(previous => ({ ...previous, [activeShow.id]: enabled }));
   }
 
+  function toggleCompactSetlist() {
+    setCompactSetlist(value => !value);
+    if (isMobile) setMobileTab("setlist");
+  }
+
   function openVoting(timerSecs) {
     setLiveShowMode(true);
     updateShow(activeShow.id, {
@@ -306,6 +316,20 @@ export default function App() {
       }}
     >{isShowMode ? "■ End Live Show" : "▶ Start Live Show"}</button>
   );
+  const compactModeButton = (
+    <button
+      type="button"
+      onClick={toggleCompactSetlist}
+      aria-pressed={compactSetlist}
+      style={{
+        minHeight:36, padding:"7px 12px", borderRadius:5,
+        border:`1px solid ${compactSetlist ? colors.borderTeal : colors.borderMed}`,
+        background:compactSetlist ? "rgba(78,205,196,0.12)" : "transparent",
+        color:compactSetlist ? colors.teal : colors.textSecondary,
+        cursor:"pointer", fontSize:12, fontWeight:700, fontFamily:"inherit", whiteSpace:"nowrap",
+      }}
+    >{compactSetlist ? "▣ Exit compact" : "▣ Compact view"}</button>
+  );
 
   if (loading) return (
     <div style={{
@@ -400,7 +424,7 @@ export default function App() {
         }}
       />
 
-      {!isMobile && (
+      {!compactSetlist && !isMobile && (
         <div className="meta-actions" style={{ marginLeft:"auto", display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
           <span style={{ fontSize:11, color:colors.textMuted }}>{activeShow.songIds.length} songs</span>
 
@@ -514,7 +538,7 @@ export default function App() {
             }}>+</button>
           </div>
 
-          <select
+          {!compactSetlist && <select
             value={memberName}
             onChange={e => setMemberName(e.target.value)}
             style={{
@@ -526,32 +550,32 @@ export default function App() {
           >
             <option value="">Who?</option>
             {BAND_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          </select>}
 
-          <button onClick={() => setShowAdmin(true)} style={{
+          {!compactSetlist && <button onClick={() => setShowAdmin(true)} style={{
             background:"transparent", border:`1px solid ${colors.borderTeal}`, color:colors.teal,
             borderRadius:3, padding:"4px 8px", fontSize:13, cursor:"pointer", fontFamily:"inherit",
-          }}>⚙</button>
+          }}>⚙</button>}
         </div>
 
         {/* Meta bar */}
-        {metaBar}
+        {!compactSetlist && metaBar}
 
         {/* Tab content */}
         <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
 
           {/* LIBRARY TAB */}
-          {mobileTab === "library" && (
+          {mobileTab === "library" && !compactSetlist && (
             <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
               {/* Generate Set button */}
-              <button onClick={() => setShowGenerate(true)} style={{
+              {!compactSetlist && <button onClick={() => setShowGenerate(true)} style={{
                 margin:"10px 12px 4px", padding:"10px",
                 background:"transparent", border:`1px solid ${colors.borderTeal}`, color:colors.teal,
                 borderRadius:4, cursor:"pointer", fontSize:13, fontFamily:"inherit",
                 fontWeight:"bold", letterSpacing:"0.05em",
               }}>
                 ✦ Generate Set
-              </button>
+              </button>}
               <div style={{
                 padding:"4px 16px 6px", fontSize:9, color:colors.textDim,
                 letterSpacing:"0.2em", textTransform:"uppercase",
@@ -573,13 +597,14 @@ export default function App() {
                 borderBottom:`1px solid ${colors.borderLight}`,
                 display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap",
               }}>
-                <span>Set List — {activeShow.songIds.length} songs{totalDuration > 0 ? ` · ${fmtDuration(totalDuration)}` : ""}</span>
+                <span>{compactSetlist ? `${activeShow.name} · ` : "Set List — "}{activeShow.songIds.length} songs{totalDuration > 0 ? ` · ${fmtDuration(totalDuration)}` : ""}</span>
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                   {!isShowMode && <span style={{ color:colors.textFaint, fontSize:9 }}>drag to reorder</span>}
+                  {compactModeButton}
                   {liveModeButton}
                 </div>
               </div>
-              <VotePanel show={activeShow} onOpen={openVoting} onClose={closeVoting} onPause={pauseVoting} onResume={resumeVoting} />
+              <VotePanel show={activeShow} onOpen={openVoting} onClose={closeVoting} onPause={pauseVoting} onResume={resumeVoting} compact={compactSetlist} />
               <div style={{ flex:1, overflowY:"auto" }}>
                 {isShowMode
                   ? <ShowSetlist
@@ -595,7 +620,7 @@ export default function App() {
                 }
               </div>
               {/* Action footer — only in builder mode */}
-              {!isShowMode && (
+              {!isShowMode && !compactSetlist && (
                 <div style={{
                   display:"flex", gap:8, padding:"10px 12px",
                   borderTop:`1px solid ${colors.borderLight}`, background:colors.bgPanel, flexShrink:0,
@@ -616,7 +641,7 @@ export default function App() {
           )}
 
           {/* SUGGESTIONS TAB */}
-          {mobileTab === "suggestions" && (
+          {mobileTab === "suggestions" && !compactSetlist && (
             <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column" }}>
               <SuggestionsPanel
                 suggestions={activeShow.suggestions || []}
@@ -627,7 +652,7 @@ export default function App() {
         </div>
 
         {/* Bottom tab bar */}
-        <div style={{
+        {!compactSetlist && <div style={{
           display:"flex", borderTop:`1px solid ${colors.borderMed}`,
           background:colors.bgHeader, flexShrink:0,
           paddingBottom:"env(safe-area-inset-bottom, 0px)",
@@ -645,7 +670,7 @@ export default function App() {
               borderTop: mobileTab === tab.id ? `2px solid ${colors.coral}` : "2px solid transparent",
             }}>{tab.label}</button>
           ))}
-        </div>
+        </div>}
 
         <PrintModal show={printShow} onClose={() => setPrintShow(null)} onToast={showToast} />
         {showGenerate && (
@@ -706,7 +731,7 @@ export default function App() {
           }}>+</button>
         </div>
 
-        <select
+        {!compactSetlist && <select
           value={memberName}
           onChange={e => setMemberName(e.target.value)}
           style={{
@@ -717,23 +742,23 @@ export default function App() {
         >
           <option value="">Who are you?</option>
           {BAND_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
+        </select>}
 
-        <button onClick={() => setShowAdmin(true)} style={{
+        {!compactSetlist && <button onClick={() => setShowAdmin(true)} style={{
           padding:"4px 10px", fontSize:13, fontFamily:"inherit",
           background:"transparent", border:`1px solid ${colors.borderTeal}`, color:colors.teal,
           borderRadius:3, cursor:"pointer",
-        }}>⚙ Songs</button>
+        }}>⚙ Songs</button>}
       </div>
 
-      {metaBar}
+      {!compactSetlist && metaBar}
 
       {/* Main content */}
       <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
         {/* Library sidebar */}
         <div style={{
-          width: sidebarOpen ? (isTablet ? 220 : 280) : 0,
-          minWidth: sidebarOpen ? (isTablet ? 220 : 280) : 0,
+          width: sidebarOpen && !compactSetlist ? (isTablet ? 220 : 280) : 0,
+          minWidth: sidebarOpen && !compactSetlist ? (isTablet ? 220 : 280) : 0,
           borderRight:`1px solid ${colors.borderLight}`,
           display:"flex", flexDirection:"column",
           overflow:"hidden", transition:"width 0.2s, min-width 0.2s",
@@ -751,14 +776,14 @@ export default function App() {
           </div>
         </div>
 
-        <button onClick={() => setSidebarOpen(o => !o)} style={{
+        {!compactSetlist && <button onClick={() => setSidebarOpen(o => !o)} style={{
           width:20, background:colors.bgPanel, border:"none",
           borderRight:`1px solid ${colors.borderLight}`, color:colors.textDim,
           cursor:"pointer", fontSize:12, flexShrink:0,
           display:"flex", alignItems:"center", justifyContent:"center",
         }}>
           {sidebarOpen ? "‹" : "›"}
-        </button>
+        </button>}
 
         <div style={{ flex:1, minWidth:0, overflowY:"auto", display:"flex", flexDirection:"column" }}>
           {viewMode === "builder" ? (
@@ -769,10 +794,13 @@ export default function App() {
                 borderBottom:`1px solid ${colors.borderLight}`, flexShrink:0,
                 display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, flexWrap:"wrap",
               }}>
-                <span>Set List — {activeShow.songIds.length} songs{totalDuration > 0 ? ` · ${fmtDuration(totalDuration)}` : ""}{!isShowMode && " · drag to reorder"}</span>
-                {liveModeButton}
+                <span>{compactSetlist ? `${activeShow.name} · ` : "Set List — "}{activeShow.songIds.length} songs{totalDuration > 0 ? ` · ${fmtDuration(totalDuration)}` : ""}{!isShowMode && !compactSetlist && " · drag to reorder"}</span>
+                <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                  {compactModeButton}
+                  {liveModeButton}
+                </div>
               </div>
-              <VotePanel show={activeShow} onOpen={openVoting} onClose={closeVoting} onPause={pauseVoting} onResume={resumeVoting} />
+              <VotePanel show={activeShow} onOpen={openVoting} onClose={closeVoting} onPause={pauseVoting} onResume={resumeVoting} compact={compactSetlist} />
               <div style={{ flex:1, overflowY:"auto" }}>
                 {isShowMode
                   ? <ShowSetlist
