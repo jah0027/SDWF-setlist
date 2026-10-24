@@ -52,10 +52,11 @@ function QRModal({ url, onClose }) {
   );
 }
 
-export default function VotePanel({ show, onOpen, onClose, onPause, onResume }) {
+export default function VotePanel({ show, onOpen, onClose, onPause, onResume, compact = false }) {
   const [timerSecs, setTimerSecs] = useState(60);
   const [showQR, setShowQR] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [expanded, setExpanded] = useState(!compact);
 
   const voting = show?.voting || {};
   const isActive = voting.active;
@@ -70,6 +71,10 @@ export default function VotePanel({ show, onOpen, onClose, onPause, onResume }) 
     return () => clearInterval(iv);
   }, [isActive, voting.endsAt, isPaused]);
 
+  useEffect(() => {
+    setExpanded(!compact);
+  }, [compact]);
+
   function fmtTime(s) {
     if (s === null) return "";
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -83,11 +88,32 @@ export default function VotePanel({ show, onOpen, onClose, onPause, onResume }) 
 
   return (
     <div style={{
-      margin: "8px 12px", padding: "12px 14px",
+      margin: "8px 12px", padding: compact && !expanded ? "4px 10px" : "12px 14px",
       background: isActive ? (isPaused ? colors.bgVotingPaused : colors.bgVotingActive) : colors.bgPanel,
       border: `1px solid ${isActive ? (isPaused ? colors.borderGold : colors.borderGreen) : colors.borderMed}`,
       borderRadius: 6,
     }}>
+      {compact && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(open => !open)}
+          style={{
+            width:"100%", minHeight:38, display:"flex", alignItems:"center", gap:10,
+            padding:"5px 4px", border:0, background:"transparent", color:colors.textPrimary,
+            textAlign:"left", cursor:"pointer", fontFamily:"inherit",
+          }}
+        >
+          <span style={{ color:isPaused ? colors.gold : isActive ? colors.teal : colors.textMuted, fontWeight:700, flex:1 }}>
+            {isActive ? (isPaused ? "⏸ Voting paused" : "🗳 Voting open") : "🗳 Open vote"}
+          </span>
+          {isActive && !isPaused && timeLeft !== null && (
+            <span style={{ color:timeLeft <= 10 ? colors.coral : colors.teal, fontWeight:700 }}>{fmtTime(timeLeft)}</span>
+          )}
+          <span aria-hidden="true" style={{ color:colors.textMuted, fontSize:12 }}>{expanded ? "▲" : "▼"}</span>
+        </button>
+      )}
+      {(!compact || expanded) && <div style={compact ? { paddingTop:8, borderTop:`1px solid ${colors.borderLight}` } : undefined}>
       {isActive ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ flex: 1 }}>
@@ -150,6 +176,7 @@ export default function VotePanel({ show, onOpen, onClose, onPause, onResume }) 
         </div>
       )}
       {showQR && <QRModal url={voteUrl} onClose={() => setShowQR(false)} />}
+      </div>}
     </div>
   );
 }
