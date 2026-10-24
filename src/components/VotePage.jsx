@@ -73,7 +73,7 @@ export default function VotePage({ showId }) {
     <div style={{
       height: "100dvh", background: colors.bgPage, display: "flex",
       alignItems: "center", justifyContent: "center",
-      color: colors.teal, fontFamily: "'Georgia', serif", fontSize: 14,
+      color: colors.teal, fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14,
     }}>Loading…</div>
   );
 
@@ -81,7 +81,7 @@ export default function VotePage({ showId }) {
     <div style={{
       height: "100dvh", background: colors.bgPage, display: "flex",
       alignItems: "center", justifyContent: "center",
-      color: colors.coral, fontFamily: "'Georgia', serif", fontSize: 14, padding: 24, textAlign: "center",
+      color: colors.coral, fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, padding: 24, textAlign: "center",
     }}>Show not found. Check your link.</div>
   );
 
@@ -107,14 +107,14 @@ export default function VotePage({ showId }) {
   return (
     <div style={{
       minHeight: "100dvh", background: colors.bgPage, color: colors.textPrimary,
-      fontFamily: "'Georgia', serif", display: "flex", flexDirection: "column",
+      fontFamily: "'Inter', system-ui, sans-serif", display: "flex", flexDirection: "column",
     }}>
       {/* Header */}
       <div style={{
         background: colors.bgHeader, borderBottom: `1px solid ${colors.borderMed}`,
         padding: "16px 20px", textAlign: "center",
       }}>
-        <div style={{ fontSize: 11, color: colors.coral, fontWeight: "bold", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+        <div style={{ fontSize: 11, color: colors.coral, fontWeight: "bold", letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "'Poppins', sans-serif" }}>
           Sick Day with Ferris
         </div>
         <div style={{ fontSize: 18, color: colors.textPrimary, marginTop: 4 }}>{show.name}</div>

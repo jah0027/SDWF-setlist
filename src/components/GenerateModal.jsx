@@ -192,7 +192,7 @@ export default function GenerateModal({ currentSongIds, onGenerate, onClose }) {
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: 100, fontFamily: "'Georgia', serif",
+      zIndex: 100, fontFamily: "'Inter', system-ui, sans-serif",
     }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
         background: colors.bgPage, border: `1px solid ${colors.borderMed}`,

@@ -25,7 +25,7 @@ export function Toast({ message, type = "success", onDone }) {
       zIndex: 99999,
       whiteSpace: "nowrap",
       boxShadow: "0 4px 24px rgba(0,0,0,0.7)",
-      fontFamily: "'Georgia', serif",
+      fontFamily: "'Inter', system-ui, sans-serif",
       animation: "toastIn 0.2s ease",
       pointerEvents: "none",
     }}>
@@ -47,7 +47,7 @@ export function ConfirmDialog({ message, onConfirm, onCancel }) {
       position: "fixed", inset: 0, zIndex: 99998,
       background: "rgba(0,0,0,0.65)",
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "'Georgia', serif",
+      fontFamily: "'Inter', system-ui, sans-serif",
     }}>
       <div style={{
         background: colors.bgCard, border: `1px solid ${colors.borderMed}`,

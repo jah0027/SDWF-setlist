@@ -16,7 +16,7 @@ function fmtDuration(secs) {
   return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
 }
 
-function SortableItem({ id, index, onRemove, songMap, sameKeyAsPrev }) {
+function SortableItem({ id, index, onRemove, onOpenChart, songMap, sameKeyAsPrev }) {
   const song = songMap[id];
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
 
@@ -73,17 +73,34 @@ function SortableItem({ id, index, onRemove, songMap, sameKeyAsPrev }) {
             </div>
           )}
         </div>
-        {/* key + duration */}
+        {/* key, chart shortcut, and duration */}
         <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, flexShrink:0 }}>
-          {song.key && (
-            <div style={{
-              fontSize:11, fontWeight:"bold", color: colors.onAccent,
-              background: sameKeyAsPrev ? colors.gold : colors.teal,
-              borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em",
-            }}>
-              {song.key}
-            </div>
-          )}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"flex-end", gap:5 }}>
+            {song.key && (
+              <div style={{
+                fontSize:11, fontWeight:"bold", color: colors.onAccent,
+                background: sameKeyAsPrev ? colors.gold : colors.teal,
+                borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em",
+              }}>
+                {song.key}
+              </div>
+            )}
+            {song.chart?.trim() && (
+              <button
+                type="button"
+                aria-label={`Open chart for ${song.title}`}
+                title="Open song chart"
+                onPointerDown={event => event.stopPropagation()}
+                onClick={event => { event.stopPropagation(); onOpenChart?.(song.id); }}
+                style={{
+                  minHeight:30, padding:"4px 8px",
+                  background:"transparent", border:`1px solid ${colors.borderTeal}`,
+                  color:colors.teal, borderRadius:4, cursor:"pointer", fontSize:10,
+                  fontWeight:"bold", lineHeight:1, whiteSpace:"nowrap", flexShrink:0,
+                }}
+              >Chart ↗</button>
+            )}
+          </div>
           {song.duration && (
             <div style={{ fontSize:11, color:colors.textDim }}>{fmtDuration(song.duration)}</div>
           )}
@@ -108,7 +125,7 @@ export function calcTotalDuration(songIds, songMap) {
   return songIds.reduce((sum, id) => sum + (songMap[id]?.duration || 0), 0);
 }
 
-export default function SetlistBuilder({ songIds, onChange }) {
+export default function SetlistBuilder({ songIds, onChange, onOpenChart }) {
   const { songs } = useSongs();
   const songMap = Object.fromEntries(songs.map(s => [s.id, s]));
   const sensors = useSensors(
@@ -150,6 +167,7 @@ export default function SetlistBuilder({ songIds, onChange }) {
               id={id}
               index={i}
               onRemove={handleRemove}
+              onOpenChart={onOpenChart}
               songMap={songMap}
               sameKeyAsPrev={i > 0 && songMap[id]?.key && songMap[songIds[i-1]]?.key === songMap[id]?.key}
             />

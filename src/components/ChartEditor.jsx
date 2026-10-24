@@ -108,7 +108,7 @@ export default function ChartEditor({ song, onSave, onCancel }) {
     <div style={{
       position:"fixed", inset:0, zIndex:10001, background:"rgba(0,0,0,0.85)",
       display:"flex", alignItems:"center", justifyContent:"center",
-      fontFamily:"'Georgia', serif", padding:24,
+      fontFamily:"'Inter', system-ui, sans-serif", padding:24,
     }}>
       <div style={{
         width:"min(1100px, 100%)", maxHeight:"92vh", background:colors.bgPage,
@@ -165,7 +165,7 @@ export default function ChartEditor({ song, onSave, onCancel }) {
         </div>
 
         {/* Panes */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", flex:1, minHeight:0, overflow:"hidden" }}>
+        <div className="chart-editor-panes" style={{ display:"grid", flex:1, minHeight:0, overflow:"hidden" }}>
           {/* Left: source */}
           <div style={{ borderRight:`1px solid ${colors.borderLight}`, display:"flex", flexDirection:"column", minHeight:0 }}>
             <div style={{ padding:"10px 16px 6px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
