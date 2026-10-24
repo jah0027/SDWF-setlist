@@ -65,7 +65,9 @@ function ChartText({ chart, note }) {
 export default function SingleChartView({ song, songNumber, songCount, note, onBack, onNext, hasNext }) {
   return (
     <main style={{
-      minHeight:"100dvh", background:colors.bgPage, color:colors.textPrimary,
+      height:"100dvh", minHeight:0, overflowY:"auto", WebkitOverflowScrolling:"touch",
+      overscrollBehaviorY:"contain", touchAction:"pan-y",
+      background:colors.bgPage, color:colors.textPrimary,
       fontFamily:"'Inter', system-ui, sans-serif", padding:"clamp(12px, 3vw, 28px)",
     }}>
       <div style={{ maxWidth:900, margin:"0 auto" }}>
